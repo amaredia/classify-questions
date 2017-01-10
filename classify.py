@@ -4,6 +4,7 @@ from gensim.models import Word2Vec
 import os
 import numpy as np
 
+    
 #Loading model
 print "Loading model"
 model = Word2Vec.load_word2vec_format("GoogleNewsVectors.bin", binary=True)
@@ -14,7 +15,7 @@ print "Model has been loaded"
 def parseRawQFile(fileName):
     
     #open file for reading and writing
-    f = open(fileName)
+    f = open(fileName, 'r')
     lines = filter(None, (line.rstrip() for line in f))
     q = open('q_vect.txt', 'w')
     qNum = 1 #set question number
@@ -25,13 +26,12 @@ def parseRawQFile(fileName):
             line = line.lower()
             
             #cleaning up punctuation and stopwords
+            line = line.replace("e-reader", "ereader")
             line = line.replace("-", " ")
             line = line.replace("'", "")
-            line = line.replace(" a ", " ")
-            line = line.replace(" to ", " ")
-            line = line.replace(" and ", " ")
-            line = line.replace(" of ", " ")
+            stopwords = ['a', 'to', 'and', 'of', 'um']
             stripped = line.split(" ")
+            stripped  = [word for word in stripped if word not in stopwords]
             
             #determine average of the phrase
             avg = assignVectorAvg(stripped)
@@ -59,10 +59,21 @@ def assignVectorAvg(phrase):
 #def matchQuestion():
     
 #Converts raw question vector file into dict and returns dict
-#def convertToDict():
+def convertToDict(fileName):
+    question_avg = {}
+    f = open(fileName,'r')
+    lines = filter(None, (line.rstrip() for line in f))
+    for line in lines:
+        q_score = line.split(" ")
+        q_score[0] = int(q_score[0])
+        q_score[1] = float(q_score[1])
+        question_avg[q_score[0]] = q_score[1]
+    return question_avg
+        
 
 def main():
     parseRawQFile("questions.csv")
+    #convertToDict("q_vect.txt")
 
 if __name__ == "__main__":
     main()
