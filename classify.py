@@ -1,7 +1,7 @@
 # gensim modules
 from gensim import utils
 from gensim.models import Word2Vec
-import os
+import re
 import numpy as np
 
     
@@ -42,22 +42,50 @@ def parseRawQFile(fileName):
     f.close()
     q.close()
     
+    
 #Parses through file for each turn and writes to file
-#def classifyTurns(fileName):
+def classifyTurns(fileName):
+    stopwords = ['a', 'to', 'and', 'of', 'um', 'mkay', 'okay', 'uh', 'um', 'er', 'ah', 'eh', 'oh', 'so']
+    #clean text using stop words, duplicates
+    f = open(fileName, 'r')
+    lines = filter(None, (line.rstrip() for line in f))
+    lines.pop(0)
+    
+    q_score = convertToDict('q_vect.txt')
+    #initialize array of questions with yes or no
+    for line in lines:
+        sentence = line.split(",")
+        question = sentence[4]
+        
+        question = question.lower()
+        question = question.replace("-", " ")
+        question = question.replace("'", "")
+        question = question.split(" ")
+        question  = [word for word in question if word not in stopwords]
+        
+        if len(question) != 0:
+            q_avg = assignVectorAvg(question)
+            closestMatchQ, closestMatchV = min(q_score.items(), key=lambda (_, v): abs(v - q_avg))
+            print str(sentence[0]) + " " + str(q_avg) + " " + str(closestMatchQ) + " " + str(closestMatchV)
+    
+    f.close()
+    
     
 #Assigns a vector average to a given phrase based on the model and returns average
 def assignVectorAvg(phrase):
     sum = 0
     wordCount = 0
     for word in phrase:
-        sum = sum + model[word]
-        wordCount = wordCount + 1
+        try:
+            sum = sum + model[word]
+            wordCount = wordCount + 1
+        except KeyError:
+            print word
     avg = sum/wordCount
+        
     return np.average(avg)
-    
-#Finds closest question and returns number or null
-#def matchQuestion():
-    
+
+
 #Converts raw question vector file into dict and returns dict
 def convertToDict(fileName):
     question_avg = {}
@@ -72,8 +100,7 @@ def convertToDict(fileName):
         
 
 def main():
-    parseRawQFile("questions.csv")
-    #convertToDict("q_vect.txt")
+    classifyTurns("labeled/p324p325-part2_ch1.csv")
 
 if __name__ == "__main__":
     main()
