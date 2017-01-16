@@ -2,11 +2,15 @@
 from gensim.models import Word2Vec
 import numpy as np
 import os
+import re
 
 stopwords = ['a', 'to', 'and', 'of', 'um', 'mkay', 'okay', 'uh', 'um', 'er', 
 'ah', 'eh', 'oh', 'so','haha', 'mm', 'how', 'whom', 'who', 'what', 'do', 'did',
 'have', 'you', 'your', 'ever', 'is']
-    
+
+q_words = ['what', 'how', 'who', 'when', 'where', 'whom', 'did', 'have', 'do']
+
+        
 #Loading model
 print "Loading model"
 model = Word2Vec.load_word2vec_format("GoogleNewsVectors.bin", binary=True)
@@ -27,11 +31,24 @@ def parseRawQFile(fileName):
         if line != "Questions":
             line = line.lower()
             
-            #cleaning up punctuation and stopwords
+            #cleaning up punctuation
             line = line.replace("e-reader", "ereader")
             line = line.replace("-", " ")
             line = line.replace("'", "")
             stripped = line.split(" ")
+            
+            #filters out only just after a question word
+            i = 0
+            is_q = False
+            prefiltered = list(stripped)
+            while i< len(prefiltered) and is_q == False:
+                if prefiltered[i] in q_words:
+                    is_q = True
+                else:
+                    stripped.remove(prefiltered[i])
+                i = i + 1
+            
+            #cleans up stopwords
             stripped  = [word for word in stripped if word not in stopwords]
             
             #determine average of the phrase
@@ -69,6 +86,19 @@ def classifyTurns(fileName):
         question = question.replace("iceskating", "ice skating")
         question = question.replace("'", "")
         question = question.split(" ")
+        
+        #filters out only just after a question word
+        i = 0
+        is_q = False
+        prefiltered = list(question)
+        while i< len(prefiltered) and is_q == False:
+            if prefiltered[i] in q_words:
+                is_q = True
+            else:
+                question.remove(prefiltered[i])
+            i = i + 1
+        
+        #filters stop words and repeats
         question  = [word for word in question if word not in stopwords]
         question.sort()
         cleaned = [word for word in question if word not in cleaned]
@@ -126,7 +156,7 @@ def convertToDict(fileName):
         
 
 def main():
-    #parseRawQFile("questions.csv")
+    parseRawQFile("questions.csv")
     for filename in os.listdir("labeled/"):
         name = "labeled/" + filename
         classifyTurns(name)
