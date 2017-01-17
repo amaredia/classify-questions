@@ -10,6 +10,12 @@ stopwords = ['a', 'to', 'and', 'of', 'um', 'mkay', 'okay', 'uh', 'um', 'er',
 
 q_words = ['what', 'how', 'who', 'when', 'where', 'whom', 'did', 'have', 'do']
 
+weighted = ['born', 'years', 'live', 'home', 'mothers', 'fathers', 'parents',
+'job', 'divorced', 'broken', 'bone', 'allergies', 'food', 'foods',
+'overnight', 'hospital', 'tweeted', 'bought', 'ebay', 'ereader', 'physical',
+'fight', 'trouble', 'police', 'romantic', 'relationship', 'love', 'spent',
+'shoes', 'movie', 'hated', 'ice', 'skating', 'tennis', 'racket', 'roommates',
+'major', 'cat', 'die', 'cheat', 'test', 'high', 'school']
         
 #Loading model
 print "Loading model"
@@ -131,7 +137,10 @@ def assignVectorAvg(phrase):
     wordCount = 0
     for word in phrase:
         try:
-            sum = sum + model[word]
+            if word in weighted:
+                sum = sum + (model[word]*3)
+            else:
+                sum = sum + model[word]
             wordCount = wordCount + 1
         except KeyError:
             continue
