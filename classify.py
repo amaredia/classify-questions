@@ -2,11 +2,11 @@
 from gensim.models import Word2Vec
 import numpy as np
 import os
-import re
 
 stopwords = ['a', 'to', 'and', 'of', 'um', 'mkay', 'okay', 'uh', 'um', 'er', 
 'ah', 'eh', 'oh', 'so','haha', 'mm', 'how', 'whom', 'who', 'what', 'do', 'did',
-'have', 'you', 'your', 'ever', 'is']
+'have', 'you', 'ever', 'is', 'really', 'for', 'your', 'the', 'were', 'was',
+'ha', '#', 'where', 'in', 'into', 'whats', 'from', 'on', 'it']
 
 q_words = ['what', 'how', 'who', 'when', 'where', 'whom', 'did', 'have', 'do']
 
@@ -56,6 +56,7 @@ def parseRawQFile(fileName):
             
             #cleans up stopwords
             stripped  = [word for word in stripped if word not in stopwords]
+            print stripped
             
             #determine average of the phrase
             avg = assignVectorAvg(stripped)
@@ -79,6 +80,13 @@ def classifyTurns(fileName):
     correct = 0
     incorrect = 0
     
+    #calculates total sum of all the differences between actual vector average
+    #of question and calculated vector average of turn
+    cor_diff = 0
+    incor_diff = 0
+    cor_max_thresh = float("-inf")
+    incor_min_thresh = float("inf")
+    
     #goes through lines of every file
     q_score = convertToDict('q_vect.txt')
     for line in lines:
@@ -88,10 +96,14 @@ def classifyTurns(fileName):
         
         #cleans each question
         question = question.lower()
-        question = question.replace("-", "")
         question = question.replace("iceskating", "ice skating")
-        question = question.replace("'", "")
+        question = question.replace("e-reader", "ereader")
+        question = question.replace("e reader", "ereader")
+        question = question.replace(" got ", " gotten")
+        question = question.replace("'s", "s")
         question = question.split(" ")
+        question = [word for word in question if "-" not in word]
+        question = [word for word in question if "'" not in word]
         
         #filters out only just after a question word
         i = 0
@@ -106,28 +118,37 @@ def classifyTurns(fileName):
         
         #filters stop words and repeats
         question  = [word for word in question if word not in stopwords]
-        question.sort()
-        cleaned = [word for word in question if word not in cleaned]
+        for word in question:
+            if word not in cleaned:
+                cleaned.append(word)
         
-        if len(question) != 0:
+        q_match = sentence[5]
+        if len(cleaned) != 0:
             q_avg = assignVectorAvg(cleaned)
             closestMatchQ, closestMatchV = min(q_score.items(), key=lambda (_, v): abs(v - q_avg))
             
             #determines whether a question is correctly matched or not
-            q_match = sentence[5]
             if "f" not in q_match and q_match != "0":
                 q_match = q_match.replace("/", "")
                 try:
                     if closestMatchQ == int(q_match):
                         correct = correct + 1
+                        cor_diff = cor_diff + abs(closestMatchV - q_avg)
+                        if abs(closestMatchV - q_avg) > cor_max_thresh:
+                            cor_max_thresh = abs(closestMatchV - q_avg)
+                        print str(sentence[0]) + " " + str(q_avg) + " " + str(closestMatchQ) + " " + str(closestMatchV) + " correct " + str(abs(closestMatchV - q_avg))
+
                     else:
                         incorrect = incorrect + 1
+                        incor_diff = incor_diff + abs(closestMatchV - q_avg)
+                        if abs(closestMatchV - q_avg) < incor_min_thresh:
+                            incor_min_thresh = abs(closestMatchV - q_avg)
+                        #print str(sentence[0]) + " " + str(q_avg) + " " + str(closestMatchQ) + " " + str(closestMatchV) + " incorrect"
+                        #print cleaned
                 except ValueError:
                     continue
-                    
-            #print str(sentence[0]) + " " + str(q_avg) + " " + str(closestMatchQ) + " " + str(closestMatchV)
-    
-    print fileName + " " + str(correct) + " " + str(incorrect)
+    print str(cor_max_thresh) + " " + str(incor_min_thresh)
+    #print fileName + " " + str(correct) + " " + str(incorrect) + " " + str(cor_diff) + " " + str(incor_diff)
     f.close()
     
     
@@ -165,10 +186,12 @@ def convertToDict(fileName):
         
 
 def main():
-    parseRawQFile("questions.csv")
-    for filename in os.listdir("labeled/"):
-        name = "labeled/" + filename
-        classifyTurns(name)
+    #parseRawQFile("questions.csv")
+    classifyTurns("labeled/p254p255-part2_ch1.csv")
+    #for filename in os.listdir("labeled/"):
+    #    if filename.endswith(".csv"):
+    #        name = "labeled/" + filename
+    #        classifyTurns(name)
 
 if __name__ == "__main__":
     main()
