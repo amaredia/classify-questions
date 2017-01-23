@@ -6,16 +6,16 @@ import os
 stopwords = ['a', 'to', 'and', 'of', 'um', 'mkay', 'okay', 'uh', 'um', 'er', 
 'ah', 'eh', 'oh', 'so','haha', 'mm', 'how', 'whom', 'who', 'what', 'do', 'did',
 'have', 'you', 'ever', 'is', 'really', 'for', 'your', 'the', 'were', 'was',
-'ha', '#', 'where', 'in', 'into', 'whats', 'from', 'on', 'it']
+'ha', '#', 'where', 'in', 'into', 'whats', 'from', 'on', 'it', 'or']
 
 q_words = ['what', 'how', 'who', 'when', 'where', 'whom', 'did', 'have', 'do']
 
 weighted = ['born', 'years', 'live', 'home', 'mothers', 'fathers', 'parents',
-'job', 'divorced', 'broken', 'bone', 'allergies', 'food', 'foods',
-'overnight', 'hospital', 'tweeted', 'bought', 'ebay', 'ereader', 'physical',
-'fight', 'trouble', 'police', 'romantic', 'relationship', 'love', 'spent',
-'shoes', 'movie', 'hated', 'ice', 'skating', 'tennis', 'racket', 'roommates',
-'major', 'cat', 'die', 'cheat', 'test', 'high', 'school']
+'job', 'divorced', 'divorce', 'broken', 'bone', 'allergies',
+'food', 'foods', 'overnight', 'hospital', 'tweeted', 'bought', 'ebay', 'ereader', 
+'physical', 'fight', 'trouble', 'police', 'romantic', 'relationship', 'love', 
+'spent','shoes', 'movie', 'hated', 'ice', 'skating', 'tennis', 'racket', 
+'roommates','major', 'cat', 'die', 'cheat', 'cheated', 'test', 'high', 'school']
         
 #Loading model
 print "Loading model"
@@ -79,6 +79,8 @@ def classifyTurns(fileName):
     #counts how many correct and incorrect matches
     correct = 0
     incorrect = 0
+    mismatch = 0
+    uncaught = 0
     
     #calculates total sum of all the differences between actual vector average
     #of question and calculated vector average of turn
@@ -99,7 +101,11 @@ def classifyTurns(fileName):
         question = question.replace("iceskating", "ice skating")
         question = question.replace("e-reader", "ereader")
         question = question.replace("e reader", "ereader")
-        question = question.replace(" got ", " gotten")
+        question = question.replace(" got ", " gotten ")
+        question = question.replace("allergy", "allergies")
+        question = question.replace(" tweet ", " tweeted ")
+        question = question.replace("food", "foods")
+        #question = question.replace("cheated", "cheat")
         question = question.replace("'s", "s")
         question = question.split(" ")
         question = [word for word in question if "-" not in word]
@@ -123,6 +129,7 @@ def classifyTurns(fileName):
                 cleaned.append(word)
         
         q_match = sentence[5]
+        
         if len(cleaned) != 0:
             q_avg = assignVectorAvg(cleaned)
             closestMatchQ, closestMatchV = min(q_score.items(), key=lambda (_, v): abs(v - q_avg))
@@ -130,26 +137,32 @@ def classifyTurns(fileName):
             #determines whether a question is correctly matched or not
             if "f" not in q_match and q_match != "0":
                 q_match = q_match.replace("/", "")
+                diff = abs(closestMatchV-q_avg)
                 try:
                     if closestMatchQ == int(q_match):
                         correct = correct + 1
-                        cor_diff = cor_diff + abs(closestMatchV - q_avg)
-                        if abs(closestMatchV - q_avg) > cor_max_thresh:
-                            cor_max_thresh = abs(closestMatchV - q_avg)
-                        print str(sentence[0]) + " " + str(q_avg) + " " + str(closestMatchQ) + " " + str(closestMatchV) + " correct " + str(abs(closestMatchV - q_avg))
+                        cor_diff = cor_diff + diff
+                        if diff > cor_max_thresh:
+                            cor_max_thresh = diff
+                        #print str(sentence[0]) + " " + str(q_avg) + " " + str(closestMatchQ) + " " + str(closestMatchV) + " correct " + str(abs(closestMatchV - q_avg))
 
                     else:
                         incorrect = incorrect + 1
-                        incor_diff = incor_diff + abs(closestMatchV - q_avg)
-                        if abs(closestMatchV - q_avg) < incor_min_thresh:
-                            incor_min_thresh = abs(closestMatchV - q_avg)
+                        incor_diff = incor_diff + diff
+                        if diff < incor_min_thresh:
+                            incor_min_thresh = diff
                         #print str(sentence[0]) + " " + str(q_avg) + " " + str(closestMatchQ) + " " + str(closestMatchV) + " incorrect"
                         #print cleaned
                 except ValueError:
                     continue
-    print str(cor_max_thresh) + " " + str(incor_min_thresh)
-    #print fileName + " " + str(correct) + " " + str(incorrect) + " " + str(cor_diff) + " " + str(incor_diff)
-    f.close()
+            else:
+                mismatch = mismatch + 1
+        elif "f" not in q_match and q_match != "0":
+            #print str(sentence[0])
+            uncaught = uncaught + 1
+    #print str(cor_max_thresh) + " " + str(incor_min_thresh)
+    print fileName + " " + str(correct) + " " + str(incorrect) + " " + str(mismatch) + " " + str(uncaught)
+    f.close() 
     
     
 #Assigns a vector average to a given phrase based on the model and returns average
@@ -187,7 +200,7 @@ def convertToDict(fileName):
 
 def main():
     #parseRawQFile("questions.csv")
-    classifyTurns("labeled/p254p255-part2_ch1.csv")
+    classifyTurns("labeled/p362p363-part2_ch1.csv")
     #for filename in os.listdir("labeled/"):
     #    if filename.endswith(".csv"):
     #        name = "labeled/" + filename
