@@ -105,7 +105,6 @@ def classifyTurns(fileName):
         question = question.replace("allergy", "allergies")
         question = question.replace(" tweet ", " tweeted ")
         question = question.replace("food", "foods")
-        #question = question.replace("cheated", "cheat")
         question = question.replace("'s", "s")
         question = question.split(" ")
         question = [word for word in question if "-" not in word]
@@ -119,7 +118,8 @@ def classifyTurns(fileName):
             if prefiltered[i] in q_words:
                 is_q = True
             else:
-                question.remove(prefiltered[i])
+                if prefiltered[i] not in weighted:
+                    question.remove(prefiltered[i])
             i = i + 1
         
         #filters stop words and repeats
@@ -129,7 +129,6 @@ def classifyTurns(fileName):
                 cleaned.append(word)
         
         q_match = sentence[5]
-        
         if len(cleaned) != 0:
             q_avg = assignVectorAvg(cleaned)
             closestMatchQ, closestMatchV = min(q_score.items(), key=lambda (_, v): abs(v - q_avg))
@@ -200,11 +199,11 @@ def convertToDict(fileName):
 
 def main():
     #parseRawQFile("questions.csv")
-    classifyTurns("labeled/p362p363-part2_ch1.csv")
-    #for filename in os.listdir("labeled/"):
-    #    if filename.endswith(".csv"):
-    #        name = "labeled/" + filename
-    #        classifyTurns(name)
+    #classifyTurns("labeled/p362p363-part2_ch1.csv")
+    for filename in os.listdir("labeled/"):
+        if filename.endswith(".csv"):
+            name = "labeled/" + filename
+            classifyTurns(name)
 
 if __name__ == "__main__":
     main()
