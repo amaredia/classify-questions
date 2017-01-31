@@ -74,6 +74,7 @@ def classifyTurns(fileName):
     global min_cos_sim
     global max_mismatch_sim
     
+    final_q = {}
     q_vect = createQVects("questions.csv")
         
     #clean text using stop words
@@ -117,7 +118,7 @@ def classifyTurns(fileName):
         turn_match = turn_match.split(" ")
         turn_match = turn_match[0]
         cos_similar = {}
-        if len(cleaned) != 0 and set(cleaned).intersection(weighted):
+        if len(cleaned) != 0:
             turn_avg = assignVectorAvg(cleaned)
             if turn_avg is None:
                 continue
@@ -127,34 +128,30 @@ def classifyTurns(fileName):
                 mag_q = math.sqrt(np.dot(q_vect[q_num], q_vect[q_num]))
                 cos_similar[q_num] = dot_product/(mag_turn * mag_q)
             
-            closest_match_q = max(cos_similar, key=cos_similar.get) 
-        
-            #determines whether a question is correctly matched or not
-            # TODO 0.7 threshold
-            if "f" not in turn_match and turn_match != "0":
-                turn_match = turn_match.replace("/", "")
-                try:
-                    if closest_match_q == int(turn_match):
-                        correct = correct + 1
-                        total_correct = total_correct + 1
-                        correct_cos_similarity = correct_cos_similarity + cos_similar[closest_match_q]
-                        if cos_similar[closest_match_q] < min_cos_sim:
-                            min_cos_sim = cos_similar[closest_match_q]
-                    else:
-                        incorrect = incorrect + 1
-                except ValueError:
-                    continue
-            elif cos_similar[closest_match_q]:
-                print cleaned
-                mismatch = mismatch + 1
-                total_mismatch = total_mismatch + 1
-                mismatch_cos_similarity = mismatch_cos_similarity + cos_similar[closest_match_q]
-                if cos_similar[closest_match_q] > max_mismatch_sim:
-                    max_mismatch_sim = cos_similar[closest_match_q]
+            closest_match_q = max(cos_similar, key=cos_similar.get)
+            if closest_match_q not in final_q or cos_similar[closest_match_q] > final_q[closest_match_q][0]:
+                final_q[closest_match_q] = [cos_similar[closest_match_q], sentence]
         elif "f" not in turn_match and turn_match != "0":
-            #print sentence[4]
             uncaught = uncaught + 1
-    print fileName + " " + str(correct) + " " + str(incorrect) + " " + str(mismatch) + " " + str(uncaught)
+        
+        
+    #determines whether a question is correctly matched or not
+    for question in final_q:
+        sentence = final_q[question][1]
+        turn_match = sentence[5]
+        turn_match = turn_match.split(" ")
+        turn_match = turn_match[0]
+        if "f" not in turn_match and turn_match != "0":
+            turn_match = turn_match.replace("/", "")
+            try:
+                if question == int(turn_match):
+                    correct = correct + 1
+                    total_correct = total_correct + 1
+            except ValueError:
+                continue
+        else:
+            incorrect = incorrect + 1
+    print fileName + " " + str(correct) + " " + str(incorrect) + " " + str(uncaught)
     f.close() 
     
     
@@ -197,10 +194,6 @@ def main():
         if filename.endswith(".csv"):
             name = "labeled/" + filename
             classifyTurns(name)
-    print "correct cosine similarity: " + str(correct_cos_similarity/total_correct)
-    print "mismatch similarity: " + str(mismatch_cos_similarity/total_mismatch)
-    print "minimum cosine correct similarity: " + str(min_cos_sim)
-    print "maximum cosine mismatch similarity: " + str(max_mismatch_sim)
     
 if __name__ == "__main__":
     main()
