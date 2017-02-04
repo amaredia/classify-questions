@@ -106,6 +106,8 @@ def classifyTurns(fileName):
                 cleaned.append(word)
         
         turn_match = sentence[5]
+        turn_match = turn_match.lstrip();
+        turn_match = turn_match.rstrip();
         turn_match = turn_match.split(" ")
         turn_match = turn_match[0]
         cos_similar = {}
@@ -139,6 +141,8 @@ def classifyTurns(fileName):
     for question in final_q:
         sentence = final_q[question][1]
         turn_match = sentence[5]
+        turn_match = turn_match.lstrip();
+        turn_match = turn_match.rstrip();
         turn_match = turn_match.split(" ")
         turn_match = turn_match[0]
         if "f" not in turn_match and turn_match != "0":
@@ -177,7 +181,6 @@ def assignVectorAvg(phrase):
             
 
 def main():
-    #classifyTurns("labeled/p212p213-part1_ch2.csv")
     for filename in os.listdir("labeled/"):
         if filename.endswith(".csv"):
             name = "labeled/" + filename
