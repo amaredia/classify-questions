@@ -6,7 +6,7 @@ This file uses Word2Vec to find vector averages for every question and turn. Usi
 
 Once these vector averages have been found for each question, we find the vector averages for each turn. We then find the cosine similarity between the turn vector average and the question vector average. The turn with the highest cosine similarity to a question out of all the turns will be identified as that particular question.
 
-Yields accuracy of 99.286%.
+Yields accuracy of 93.286%.
 
 ##identify_vect_API.py
 
