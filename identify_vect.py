@@ -4,6 +4,12 @@ import numpy as np
 import math
 import os
 
+#TODO: 
+#    -Questions separated by small pauses (what is that threshold)
+#    -Questions that have more than one label (what do your parents do)
+#    -Questions that depend on context
+#    -Incorrect matches are matches that are followup questions to an original Q
+
 stopwords = ['a', 'to', 'and', 'of', 'um', 'mkay', 'okay', 'uh', 'um', 'er', 
 'ah', 'eh', 'oh', 'so','haha', 'mm', 'you', 'ever', 'is', 'really', 'for', 'your', 
 'the', 'were', 'was', 'ha', '#', 'in', 'into', 'from', 'on', 'it', 'or']
@@ -15,13 +21,6 @@ weighted = ['born', 'years', 'live', 'home', 'mothers', 'fathers', 'parents',
 'spent','shoes', 'movie', 'hated', 'ice', 'skating', 'tennis', 'racket', 
 'roommates','major', 'cat', 'die', 'cheat', 'cheated', 'test', 'high', 'school',
 'tweet']
-
-total_correct = 0
-correct_cos_similarity = 0
-min_cos_sim = float("inf")
-total_mismatch = 0
-mismatch_cos_similarity = 0
-max_mismatch_sim = float("-inf")
 
 #Loading model
 print "Loading model"
@@ -67,17 +66,10 @@ def createQVects(fileName):
 #Parses through file for each turn and writes to file
 def classifyTurns(fileName):
     
-    global total_correct
-    global correct_cos_similarity
-    global total_mismatch
-    global mismatch_cos_similarity
-    global min_cos_sim
-    global max_mismatch_sim
-    
     final_q = {}
     q_vect = createQVects("questions.csv")
         
-    #clean text using stop words
+    #clean text by removing spaces
     f = open(fileName, 'r')
     lines = filter(None, (line.rstrip() for line in f))
     lines.pop(0)
@@ -85,7 +77,6 @@ def classifyTurns(fileName):
     #counts how many correct and incorrect matches
     correct = 0
     incorrect = 0
-    mismatch = 0
     uncaught = 0
     
     #goes through lines of every file
@@ -122,16 +113,25 @@ def classifyTurns(fileName):
             turn_avg = assignVectorAvg(cleaned)
             if turn_avg is None:
                 continue
-            for q_num in range(1,25):
+            
+            #Calculates cosine similarity for each question
+            for q_num in q_vect.keys():
                 dot_product = np.dot(turn_avg, q_vect[q_num])
                 mag_turn = math.sqrt(np.dot(turn_avg, turn_avg))
                 mag_q = math.sqrt(np.dot(q_vect[q_num], q_vect[q_num]))
                 cos_similar[q_num] = dot_product/(mag_turn * mag_q)
             
+            #Compares top two question matches to find matches
             closest_match_q = max(cos_similar, key=cos_similar.get)
             if closest_match_q not in final_q or cos_similar[closest_match_q] > final_q[closest_match_q][0]:
                 final_q[closest_match_q] = [cos_similar[closest_match_q], sentence]
-        elif "f" not in turn_match and turn_match != "0":
+            else:
+                cos_similar[closest_match_q] = 0;
+                closest_match_q = max(cos_similar, key=cos_similar.get)
+                if closest_match_q not in final_q or cos_similar[closest_match_q] > final_q[closest_match_q][0]:
+                    final_q[closest_match_q] = [cos_similar[closest_match_q], sentence]
+
+        elif "f" not in sentence[5] and turn_match != "0":
             uncaught = uncaught + 1
         
         
@@ -146,7 +146,8 @@ def classifyTurns(fileName):
             try:
                 if question == int(turn_match):
                     correct = correct + 1
-                    total_correct = total_correct + 1
+                else:
+                    incorrect = incorrect + 1
             except ValueError:
                 continue
         else:
@@ -173,20 +174,7 @@ def assignVectorAvg(phrase):
     
     avg = sum/wordCount
     return avg
-
-
-#Converts raw question vector file into dict and returns dict
-def convertToDict(fileName):
-    question_avg = {}
-    f = open(fileName,'r')
-    lines = filter(None, (line.rstrip() for line in f))
-    for line in lines:
-        q_score = line.split(" ")
-        q_score[0] = int(q_score[0])
-        q_score[1] = float(q_score[1])
-        question_avg[q_score[0]] = q_score[1]
-    return question_avg
-        
+            
 
 def main():
     #classifyTurns("labeled/p212p213-part1_ch2.csv")
