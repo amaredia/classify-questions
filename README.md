@@ -6,9 +6,13 @@ This file uses Word2Vec to find vector averages for every question and turn. Usi
 
 Once these vector averages have been found for each question, we find the vector averages for each turn. We then find the cosine similarity between the turn vector average and the question vector average. The turn with the highest cosine similarity to a question out of all the turns will be identified as that particular question.
 
+Yields accuracy of 99.286%.
+
 ##identify_vect_API.py
 
 This approach utilizes this [API](http://swoogle.umbc.edu/SimService/api.html) and [STS Similarity](http://swoogle.umbc.edu/StsService/index.html). This returns the cosine similarity of the semantic vectors formed in each question and turn.
+
+Yields accuracy of 88.776%.
 
 ##How to run and test
 
