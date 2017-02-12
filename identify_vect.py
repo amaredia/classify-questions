@@ -132,30 +132,40 @@ def classifyTurns(fileName):
                 closest_match_q = max(cos_similar, key=cos_similar.get)
                 if closest_match_q not in final_q or cos_similar[closest_match_q] > final_q[closest_match_q][0]:
                     final_q[closest_match_q] = [cos_similar[closest_match_q], sentence]
+                else:
+                    cos_similar[closest_match_q] = 0;
+                    closest_match_q = max(cos_similar, key=cos_similar.get)
+                    if closest_match_q not in final_q or cos_similar[closest_match_q] > final_q[closest_match_q][0]:
+                        final_q[closest_match_q] = [cos_similar[closest_match_q], sentence]
 
         elif "f" not in sentence[5] and turn_match != "0":
             uncaught = uncaught + 1
         
         
     #determines whether a question is correctly matched or not
-    for question in final_q:
-        sentence = final_q[question][1]
-        turn_match = sentence[5]
-        turn_match = turn_match.lstrip();
-        turn_match = turn_match.rstrip();
-        turn_match = turn_match.split(" ")
-        turn_match = turn_match[0]
-        if "f" not in turn_match and turn_match != "0":
-            turn_match = turn_match.replace("/", "")
-            try:
-                if question == int(turn_match):
-                    correct = correct + 1
-                else:
-                    incorrect = incorrect + 1
-            except ValueError:
-                continue
+    for question in range(1,25):
+        if question not in final_q:
+            print "missing question " + str(question)
         else:
-            incorrect = incorrect + 1
+            sentence = final_q[question][1]
+            turn_match = sentence[5]
+            turn_match = turn_match.lstrip();
+            turn_match = turn_match.rstrip();
+            turn_match = turn_match.split(" ")
+            turn_match = turn_match[0]
+            if "f" not in turn_match and turn_match != "0":
+                turn_match = turn_match.replace("/", "")
+                try:
+                    if question == int(turn_match):
+                        correct = correct + 1
+                    else:
+                        incorrect = incorrect + 1
+                        print str(question) + " " + str(sentence[4])
+                except ValueError:
+                    continue
+            else:
+                incorrect = incorrect + 1
+                print str(question) + " " + str(sentence[4])
     print fileName + " " + str(correct) + " " + str(incorrect) + " " + str(uncaught)
     f.close() 
     
