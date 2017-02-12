@@ -1,5 +1,5 @@
 # gensim modules
-from gensim.models import Word2Vec
+from gensim.models import Doc2Vec
 import numpy as np
 import math
 import os
@@ -12,7 +12,7 @@ import os
 
 stopwords = ['a', 'to', 'and', 'of', 'um', 'mkay', 'okay', 'uh', 'um', 'er', 
 'ah', 'eh', 'oh', 'so','haha', 'mm', 'you', 'ever', 'is', 'really', 'for', 'your', 
-'the', 'were', 'was', 'ha', '#', 'in', 'into', 'from', 'on', 'it', 'or']
+'the', 'were', 'was', 'ha', '#', 'in', 'into', 'from', 'on', 'it', 'or', 'so']
 
 weighted = ['born', 'years', 'live', 'home', 'mothers', 'fathers', 'parents',
 'job', 'divorced', 'divorce', 'broken', 'bone', 'allergies',
@@ -24,7 +24,7 @@ weighted = ['born', 'years', 'live', 'home', 'mothers', 'fathers', 'parents',
 
 #Loading model
 print "Loading model"
-model = Word2Vec.load_word2vec_format("GoogleNewsVectors.bin", binary=True)
+model = Doc2Vec.load("doc2vec.bin")
 print "Model has been loaded"
 
 #Parses through each question and write question and vector average to file
@@ -132,7 +132,7 @@ def classifyTurns(fileName):
                 closest_match_q = max(cos_similar, key=cos_similar.get)
                 if closest_match_q not in final_q or cos_similar[closest_match_q] > final_q[closest_match_q][0]:
                     final_q[closest_match_q] = [cos_similar[closest_match_q], sentence]
-                    
+
         elif "f" not in sentence[5] and turn_match != "0":
             uncaught = uncaught + 1
         
