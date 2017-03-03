@@ -22,6 +22,9 @@ weighted = ['born', 'years', 'live', 'home', 'mothers', 'fathers', 'parents',
 'roommates','major', 'cat', 'die', 'cheat', 'cheated', 'test', 'high', 'school',
 'tweet']
 
+mom_words = ['mom', 'mom\'s', 'mother', 'mother\'s', 'mothers'] 
+dad_words = ['dad', 'dad\'s', 'father', 'father\'s', 'fathers']
+
 #Loading model
 print "Loading model"
 model = Word2Vec.load_word2vec_format("GoogleNewsVectors.bin", binary=True)
@@ -68,6 +71,8 @@ def classifyTurns(fileName):
     
     final_q = {}
     q_vect = createQVects("questions.csv")
+    mom_turns = []
+    dad_turns = []
         
     #clean text by removing spaces
     f = open(fileName, 'r')
@@ -83,7 +88,7 @@ def classifyTurns(fileName):
     for line in lines:
         cleaned = list()
         sentence = line.split(",")
-        turn = sentence[4]
+        turn = sentence[2]
         
         #cleans each question
         turn = turn.lower()
@@ -105,12 +110,13 @@ def classifyTurns(fileName):
             if word not in cleaned:
                 cleaned.append(word)
         
-        turn_match = sentence[5]
+        turn_match = sentence[3]
         turn_match = turn_match.lstrip();
         turn_match = turn_match.rstrip();
         turn_match = turn_match.split(" ")
         turn_match = turn_match[0]
         cos_similar = {}
+
         if len(cleaned) != 0:
             turn_avg = assignVectorAvg(cleaned)
             if turn_avg is None:
@@ -132,9 +138,26 @@ def classifyTurns(fileName):
                 closest_match_q = max(cos_similar, key=cos_similar.get)
                 if closest_match_q not in final_q or cos_similar[closest_match_q] > final_q[closest_match_q][0]:
                     final_q[closest_match_q] = [cos_similar[closest_match_q], sentence]
+            
+            if set.intersection(set(cleaned), set(mom_words)):
+                if "mother do" in sentence[2] or "mom do" in sentence[2] or "about" in sentence[2]:
+                    mom_turns.append((cos_similar[3], sentence))
+            
+            if set.intersection(set(cleaned), set(dad_words)):
+                if "mother do" in sentence[2] or "mom do" in sentence[2] or "about" in sentence[2]:
+                    dad_turns.append((cos_similar[4], sentence))
                     
-        elif "f" not in sentence[5] and turn_match != "0":
+        elif "f" not in sentence[3] and turn_match != "0":
             uncaught = uncaught + 1
+        
+    #adjust for rule when mom and dad job question keeps on getting missed
+    if 3 not in final_q:
+        mom_turns.sort()
+        final_q[3] = mom_turns[0]
+    
+    if 4 not in final_q:
+        dad_turns.sort()
+        final_q[4] = dad_turns[0]
         
         
     #determines whether a question is correctly matched or not
@@ -143,7 +166,7 @@ def classifyTurns(fileName):
             print "missing question " + str(question)
         else:
             sentence = final_q[question][1]
-            turn_match = sentence[5]
+            turn_match = sentence[3]
             turn_match = turn_match.lstrip();
             turn_match = turn_match.rstrip();
             turn_match = turn_match.split(" ")
@@ -155,12 +178,12 @@ def classifyTurns(fileName):
                         correct = correct + 1
                     else:
                         incorrect = incorrect + 1
-                        #print str(question) + " " + str(sentence[4])
+                        print str(question) + " " + str(sentence[2])
                 except ValueError:
                     continue
             else:
                 incorrect = incorrect + 1
-                #print str(question) + " " + str(sentence[4])
+                print str(question) + " " + str(sentence[2])
     print fileName + " " + str(correct) + " " + str(incorrect) + " " + str(uncaught)
     f.close() 
     
@@ -186,9 +209,10 @@ def assignVectorAvg(phrase):
             
 
 def main():
-    for filename in os.listdir("labeled/"):
+    #classifyTurns("labeled_test/p436p437-part1_ch2.csv")
+    for filename in os.listdir("labeled_test/"):
         if filename.endswith(".csv"):
-            name = "labeled/" + filename
+            name = "labeled_test/" + filename
             classifyTurns(name)
     
 if __name__ == "__main__":
