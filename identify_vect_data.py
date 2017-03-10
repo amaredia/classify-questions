@@ -67,14 +67,12 @@ def classifyTurns(fileName, lines):
     q_vect = createQVects("questions.csv")
     mom_turns = []
     dad_turns = []
-          
+              
     #goes through lines of every file
     for line in lines:
         cleaned = list()
         sentence = line
         turn = sentence[3]
-        print turn
-        return
         
         #cleans each question
         turn = turn.lower()
@@ -126,19 +124,41 @@ def classifyTurns(fileName, lines):
                     mom_turns.append((cos_similar[3], sentence))
             
             if set.intersection(set(cleaned), set(dad_words)):
-                if "mother do" in sentence[3] or "mom do" in sentence[3] or "about" in sentence[3]:
+                if "father do" in sentence[3] or "dad do" in sentence[3] or "about" in sentence[3]:
                     dad_turns.append((cos_similar[4], sentence))
         
     #adjust for rule when mom and dad job question keeps on getting missed
     if 3 not in final_q:
-        mom_turns.sort()
-        final_q[3] = mom_turns[0]
+        if len(mom_turns) > 0:
+            mom_turns.sort()
+            final_q[3] = mom_turns[0]
     
     if 4 not in final_q:
-        dad_turns.sort()
-        final_q[4] = dad_turns[0]
+        if len(dad_turns) > 0:
+            dad_turns.sort()
+            final_q[4] = dad_turns[0]
+    
+    #Gives all matched lines with corresponding question number
+    matched_lines = {}
+    for num in final_q.keys():
+        q_cos = final_q[num]
+        val = ','.join([str(q) for q in q_cos[1]])
+        matched_lines[val] = num
+
+    #Writes output 
+    for line in lines:
+        line.insert(0, fileName)
+        q_detected = 0
+        if line in matched_lines.keys():
+            q_detected = matched_lines[line]
+        line.append(q_detected)
         
-    print fileName + " completed"
+        with open('test.csv', 'a') as csvfile:
+            q_writer = csv.writer(csvfile, delimiter='\t',
+                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            q_writer.writerow(line)
+        
+    print fileName + ": identified " + str(len(final_q)) + " questions"
     
 #Assigns a vector average to a given phrase based on the model and returns average
 def assignVectorAvg(phrase):
@@ -163,7 +183,13 @@ def assignVectorAvg(phrase):
 def main():
     #clean text by removing spaces
     lines = [line for line in csv.reader(open('turn_taking_appened_intER_clean.csv', 'r'),delimiter='\t')]
-    lines.pop(0)
+    header = lines.pop(0)
+    header.append('question')
+    
+    with open('test.csv', 'a') as csvfile:
+        q_writer = csv.writer(csvfile, delimiter='\t',
+                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        q_writer.writerow(header)
     
     fileName = lines[0][0]
     chunk = []
@@ -171,11 +197,9 @@ def main():
         if line[0] == fileName:
             chunk.append(line)
         else:
-            print fileName
             classifyTurns(fileName, chunk)
             chunk = []
             fileName = line[0]
-    print fileName
     classifyTurns(fileName, chunk)
     
 if __name__ == "__main__":
