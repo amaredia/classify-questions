@@ -3,6 +3,7 @@ from gensim.models import Word2Vec
 import numpy as np
 import math
 import csv
+import sys
 
 stopwords = ['a', 'to', 'and', 'of', 'um', 'mkay', 'okay', 'uh', 'um', 'er', 
 'ah', 'eh', 'oh', 'so','haha', 'mm', 'you', 'ever', 'is', 'really', 'for', 'your', 
@@ -18,6 +19,8 @@ weighted = ['born', 'years', 'live', 'home', 'mothers', 'fathers', 'parents',
 
 mom_words = ['mom', 'mom\'s', 'mother', 'mother\'s', 'mothers'] 
 dad_words = ['dad', 'dad\'s', 'father', 'father\'s', 'fathers']
+
+all_turns = {}
 
 #Loading model
 print "Loading model"
@@ -72,7 +75,7 @@ def classifyTurns(fileName, lines):
     for line in lines:
         cleaned = list()
         sentence = line
-        turn = sentence[3]
+        turn = sentence[4]
         
         #cleans each question
         turn = turn.lower()
@@ -120,23 +123,27 @@ def classifyTurns(fileName, lines):
                     final_q[closest_match_q] = [cos_similar[closest_match_q], sentence]
             
             if set.intersection(set(cleaned), set(mom_words)):
-                if "mother do" in sentence[3] or "mom do" in sentence[3] or "about" in sentence[3]:
+                if "mother do" in sentence[4] or "mom do" in sentence[4] or "about" in sentence[4]:
                     mom_turns.append((cos_similar[3], sentence))
             
             if set.intersection(set(cleaned), set(dad_words)):
-                if "father do" in sentence[3] or "dad do" in sentence[3] or "about" in sentence[3]:
+                if "father do" in sentence[4] or "dad do" in sentence[4] or "about" in sentence[4]:
                     dad_turns.append((cos_similar[4], sentence))
         
     #adjust for rule when mom and dad job question keeps on getting missed
     if 3 not in final_q:
         if len(mom_turns) > 0:
-            mom_turns.sort()
+            mom_turns.sort(reverse=True)
             final_q[3] = mom_turns[0]
     
     if 4 not in final_q:
         if len(dad_turns) > 0:
-            dad_turns.sort()
+            dad_turns.sort(reverse=True)
             final_q[4] = dad_turns[0]
+
+    #global all_turns            
+    #for num in final_q:
+    #    all_turns[np.float64((final_q[num])[0]).item()] = (num, (final_q[num])[1])
     
     #Gives all matched lines with corresponding question number
     matched_lines = {}
@@ -147,13 +154,14 @@ def classifyTurns(fileName, lines):
 
     #Writes output 
     for line in lines:
-        line.insert(0, fileName)
+        #line.insert(0, fileName)
         q_detected = 0
-        if line in matched_lines.keys():
-            q_detected = matched_lines[line]
+        key = ','.join([str(word) for word in line])
+        if key in matched_lines.keys():
+            q_detected = matched_lines[key]
         line.append(q_detected)
         
-        with open('test.csv', 'a') as csvfile:
+        with open('ER_q_annotations.csv', 'a') as csvfile:
             q_writer = csv.writer(csvfile, delimiter='\t',
                             quotechar='|', quoting=csv.QUOTE_MINIMAL)
             q_writer.writerow(line)
@@ -182,25 +190,33 @@ def assignVectorAvg(phrase):
 
 def main():
     #clean text by removing spaces
-    lines = [line for line in csv.reader(open('turn_taking_appened_intER_clean.csv', 'r'),delimiter='\t')]
+    lines = [line for line in csv.reader(open('interviewer_turns.csv', 'r'),delimiter='\t')]
     header = lines.pop(0)
     header.append('question')
     
-    with open('test.csv', 'a') as csvfile:
+    with open('ER_q_annotations.csv', 'a') as csvfile:
         q_writer = csv.writer(csvfile, delimiter='\t',
                             quotechar='|', quoting=csv.QUOTE_MINIMAL)
         q_writer.writerow(header)
-    
-    fileName = lines[0][0]
+
+    #divides turns into respective files to be classified
+    fileName = lines[0][1]
     chunk = []
     for line in lines:
-        if line[0] == fileName:
+        if line[1] == fileName:
             chunk.append(line)
         else:
             classifyTurns(fileName, chunk)
             chunk = []
-            fileName = line[0]
+            fileName = line[1]
     classifyTurns(fileName, chunk)
+    #    
+    #global all_turns
+    #keys = sorted(all_turns)
+    #keys = keys[0:799]
+    #for key in keys:
+    #    print str(key) + " {0}".format(all_turns[key])
+
     
 if __name__ == "__main__":
     main()
