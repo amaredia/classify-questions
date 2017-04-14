@@ -3,6 +3,7 @@ from gensim.models import Doc2Vec
 import numpy as np
 import math
 import os
+import csv
 
 #TODO: 
 #    -Questions separated by small pauses (what is that threshold)
@@ -21,6 +22,11 @@ weighted = ['born', 'years', 'live', 'home', 'mothers', 'fathers', 'parents',
 'spent','shoes', 'movie', 'hated', 'ice', 'skating', 'tennis', 'racket', 
 'roommates','major', 'cat', 'die', 'cheat', 'cheated', 'test', 'high', 'school',
 'tweet']
+
+mom_words = ['mom', 'mom\'s', 'mother', 'mother\'s', 'mothers'] 
+dad_words = ['dad', 'dad\'s', 'father', 'father\'s', 'fathers']
+
+all_turns = {}
 
 #Loading model
 print "Loading model"
@@ -64,25 +70,17 @@ def createQVects(fileName):
     
     
 #Parses through file for each turn and writes to file
-def classifyTurns(fileName):
+def classifyTurns(fileName, lines):
     
     final_q = {}
     q_vect = createQVects("questions.csv")
-        
-    #clean text by removing spaces
-    f = open(fileName, 'r')
-    lines = filter(None, (line.rstrip() for line in f))
-    lines.pop(0)
-    
-    #counts how many correct and incorrect matches
-    correct = 0
-    incorrect = 0
-    uncaught = 0
-    
+    mom_turns = []
+    dad_turns = []
+              
     #goes through lines of every file
     for line in lines:
         cleaned = list()
-        sentence = line.split(",")
+        sentence = line
         turn = sentence[4]
         
         #cleans each question
@@ -105,12 +103,9 @@ def classifyTurns(fileName):
             if word not in cleaned:
                 cleaned.append(word)
         
-        turn_match = sentence[5]
-        turn_match = turn_match.lstrip();
-        turn_match = turn_match.rstrip();
-        turn_match = turn_match.split(" ")
-        turn_match = turn_match[0]
+        #stores each turns cosine similarities to a question
         cos_similar = {}
+
         if len(cleaned) != 0:
             turn_avg = assignVectorAvg(cleaned)
             if turn_avg is None:
@@ -132,38 +127,52 @@ def classifyTurns(fileName):
                 closest_match_q = max(cos_similar, key=cos_similar.get)
                 if closest_match_q not in final_q or cos_similar[closest_match_q] > final_q[closest_match_q][0]:
                     final_q[closest_match_q] = [cos_similar[closest_match_q], sentence]
-
-        elif "f" not in sentence[5] and turn_match != "0":
-            uncaught = uncaught + 1
+            
+            if set.intersection(set(cleaned), set(mom_words)):
+                if "mother do" in sentence[4] or "mom do" in sentence[4] or "about" in sentence[4]:
+                    mom_turns.append((cos_similar[3], sentence))
+            
+            if set.intersection(set(cleaned), set(dad_words)):
+                if "father do" in sentence[4] or "dad do" in sentence[4] or "about" in sentence[4]:
+                    dad_turns.append((cos_similar[4], sentence))
         
-        
-    #determines whether a question is correctly matched or not
-    for question in range(1,25):
-        if question not in final_q:
-            print "missing question " + str(question)
-        else:
-            sentence = final_q[question][1]
-            turn_match = sentence[5]
-            turn_match = turn_match.lstrip();
-            turn_match = turn_match.rstrip();
-            turn_match = turn_match.split(" ")
-            turn_match = turn_match[0]
-            if "f" not in turn_match and turn_match != "0":
-                turn_match = turn_match.replace("/", "")
-                try:
-                    if question == int(turn_match):
-                        correct = correct + 1
-                    else:
-                        incorrect = incorrect + 1
-                        #print str(question) + " " + str(sentence[4])
-                except ValueError:
-                    continue
-            else:
-                incorrect = incorrect + 1
-                #print str(question) + " " + str(sentence[4])
-    print fileName + " " + str(correct) + " " + str(incorrect) + " " + str(uncaught)
-    f.close() 
+    #adjust for rule when mom and dad job question keeps on getting missed
+    if 3 not in final_q:
+        if len(mom_turns) > 0:
+            mom_turns.sort(reverse=True)
+            final_q[3] = mom_turns[0]
     
+    if 4 not in final_q:
+        if len(dad_turns) > 0:
+            dad_turns.sort(reverse=True)
+            final_q[4] = dad_turns[0]
+
+    global all_turns            
+    for num in final_q:
+        all_turns[np.float64((final_q[num])[0]).item()] = (num, (final_q[num])[1])
+    
+    #Gives all matched lines with corresponding question number
+    matched_lines = {}
+    for num in final_q.keys():
+        q_cos = final_q[num]
+        val = ','.join([str(q) for q in q_cos[1]])
+        matched_lines[val] = num
+
+    #Writes output 
+    for line in lines:
+        #line.insert(0, fileName)
+        q_detected = 0
+        key = ','.join([str(word) for word in line])
+        if key in matched_lines.keys():
+            q_detected = matched_lines[key]
+        line.append(q_detected)
+        
+        #with open('ER_q_annotations.csv', 'a') as csvfile:
+        #    q_writer = csv.writer(csvfile, delimiter='\t',
+        #                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        #    q_writer.writerow(line)
+        
+    print fileName + ": identified " + str(len(final_q)) + " questions"
     
 #Assigns a vector average to a given phrase based on the model and returns average
 def assignVectorAvg(phrase):
@@ -186,10 +195,33 @@ def assignVectorAvg(phrase):
             
 
 def main():
-    for filename in os.listdir("labeled/"):
-        if filename.endswith(".csv"):
-            name = "labeled/" + filename
-            classifyTurns(name)
+    #clean text by removing spaces
+    lines = [line for line in csv.reader(open('interviewer_turns.csv', 'r'),delimiter='\t')]
+    header = lines.pop(0)
+    header.append('question')
+    
+    #with open('ER_q_annotations.csv', 'a') as csvfile:
+    #    q_writer = csv.writer(csvfile, delimiter='\t',
+    #                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    #    q_writer.writerow(header)
+
+    #divides turns into respective files to be classified
+    fileName = lines[0][1]
+    chunk = []
+    for line in lines:
+        if line[1] == fileName:
+            chunk.append(line)
+        else:
+            classifyTurns(fileName, chunk)
+            chunk = []
+            fileName = line[1]
+    classifyTurns(fileName, chunk)
+        
+    global all_turns
+    keys = sorted(all_turns)
+    keys = keys[0:800]
+    for key in keys:
+        print str(key) + " {0}".format(all_turns[key])
     
 if __name__ == "__main__":
     main()

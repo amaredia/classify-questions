@@ -141,9 +141,9 @@ def classifyTurns(fileName, lines):
             dad_turns.sort(reverse=True)
             final_q[4] = dad_turns[0]
 
-    #global all_turns            
-    #for num in final_q:
-    #    all_turns[np.float64((final_q[num])[0]).item()] = (num, (final_q[num])[1])
+    global all_turns            
+    for num in final_q:
+        all_turns[np.float64((final_q[num])[0]).item()] = (num, (final_q[num])[1])
     
     #Gives all matched lines with corresponding question number
     matched_lines = {}
@@ -210,12 +210,12 @@ def main():
             chunk = []
             fileName = line[1]
     classifyTurns(fileName, chunk)
-    #    
-    #global all_turns
-    #keys = sorted(all_turns)
-    #keys = keys[0:799]
-    #for key in keys:
-    #    print str(key) + " {0}".format(all_turns[key])
+        
+    global all_turns
+    keys = sorted(all_turns)
+    keys = keys[0:2000]
+    for key in keys:
+        print str(key) + " {0}".format(all_turns[key])
 
     
 if __name__ == "__main__":
