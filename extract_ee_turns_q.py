@@ -77,7 +77,7 @@ def parse_conf_file(file):
 #combine the question labeled with the EE turns
 #dict(interviewer, interviewee, q_num) start time, end time, answer, question, answer
 def combine_er_ee(er_files, ee_files):
-	filler_words = ['oh', 'um', 'mm', 'mmm', 'hmm', 'hm', 'ah', 'uh',  'um', 'er', 'eh', 'ha']
+	filler_words = ['oh', 'um', 'mm', 'mmm', 'hmm', 'hm', 'ah', 'uh',  'um', 'er', 'eh', 'ha', 'ha ha', 'umm', 'oh um', 'uh um']
 	combined = {}
 	for pair in ee_files:
 		er_turns = er_files[pair]
@@ -94,7 +94,10 @@ def combine_er_ee(er_files, ee_files):
 			er_start = er_turns[er_pos][0]
 			ee_start = ee_turns[ee_pos][0]
 			ee_text = ee_turns[ee_pos][2]
-			if float(er_start) > float(ee_start) or ee_text.lower() in filler_words:
+
+			ee_text = ee_text.strip()
+			ee_text = ee_text.lower()
+			if float(er_start) > float(ee_start) or ee_text in filler_words or len(ee_text) <2:
 				ee_pos+=1
 				#ee_start = ee_turns[ee_pos][0]
 			else:
