@@ -77,7 +77,7 @@ def parse_conf_file(file):
 #combine the question labeled with the EE turns
 #dict(interviewer, interviewee, q_num) start time, end time, answer, question, answer
 def combine_er_ee(er_files, ee_files):
-	filler_words = ['oh', 'um', 'mm', 'mmm', 'hmm', 'hm', 'ah', 'uh',  'um', 'er', 'eh', 'ha']
+	filler_words = ['oh', 'um', 'mm', 'mmm', 'hmm', 'hm', 'ah', 'uh',  'um', 'er', 'eh', 'ha', 'ha ha', 'umm', 'oh um']
 	combined = {}
 	for pair in ee_files:
 		er_turns = er_files[pair]
@@ -90,22 +90,37 @@ def combine_er_ee(er_files, ee_files):
 		# er_start = er_turns[er_pos][0]
 		# ee_start = ee_turns[ee_pos][0]
 		
+		final_text = ''
 		while er_pos < len(er_turns) and ee_pos < len(ee_turns):
 			er_start = er_turns[er_pos][0]
+
 			ee_start = ee_turns[ee_pos][0]
 			ee_text = ee_turns[ee_pos][2]
-			if float(er_start) > float(ee_start) or ee_text.lower() in filler_words:
+			
+			if ee_pos < len(ee_turns)-1:
+				next_ee_starttime = ee_turns[ee_pos+1][0]
+				next_ee_text = ee_turns[ee_pos+1][2]
+
+			if float(er_start) > float(ee_start) or ee_text.lower() in filler_words or len(ee_text) < 2:
 				ee_pos+=1
 				#ee_start = ee_turns[ee_pos][0]
 			else:
-				#add to dict (er, ee, q_num) = [ee_start, ee_end, ee_text]
-				ee_end = ee_turns[ee_pos][1]
-				er_qtext = er_turns[er_pos][3]
+				if (float(next_ee_starttime) - float(ee_start) <= 1.0):
+					final_text = ' '.join((final_text, ee_text, next_ee_text))
+					final_text = final_text.strip()
+					ee_pos+=1
+				else:
+					if final_text == '':
+						final_text = ee_text
+					#add to dict (er, ee, q_num) = [ee_start, ee_end, ee_text]
+					ee_end = ee_turns[ee_pos][1]
+					er_qtext = er_turns[er_pos][3]
 
-				combined[(pair[0], pair[1], er_turns[er_pos][2])] =  {'ee_start': ee_start, 'ee_end': ee_end, 'er_qtext': er_qtext, 'ee_text': ee_text}
-				er_pos +=1
-				ee_pos +=1
-				#er_start = er_turns[er_pos][0]
+					combined[(pair[0], pair[1], er_turns[er_pos][2])] =  {'ee_start': ee_start, 'ee_end': ee_end, 'er_qtext': er_qtext, 'ee_text': final_text.lower()}
+					er_pos +=1
+					ee_pos +=1
+					final_text = ''
+					#er_start = er_turns[er_pos][0]
 
 	return combined
 
